@@ -452,6 +452,80 @@
       background: var(--border);
     }
 
+
+    /* ── WORKER CONFIG ── */
+    .worker-panel {
+      background: var(--surface);
+      border: 1px solid #2a3f2a;
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 16px;
+    }
+
+    .worker-panel.configured {
+      border-color: var(--accent2);
+    }
+
+    .worker-input-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .worker-input {
+      flex: 1;
+      height: 36px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 0 10px;
+      outline: none;
+    }
+
+    .worker-input:focus { border-color: var(--accent2); }
+
+    .worker-save-btn {
+      height: 36px;
+      padding: 0 14px;
+      background: rgba(0,255,157,0.12);
+      border: 1px solid var(--accent2);
+      border-radius: 5px;
+      color: var(--accent2);
+      font-family: var(--mono);
+      font-size: 11px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .worker-status {
+      font-family: var(--mono);
+      font-size: 10px;
+      margin-top: 6px;
+      color: var(--muted);
+    }
+
+    .worker-status.ok  { color: var(--accent2); }
+    .worker-status.err { color: var(--high); }
+
+    details > summary {
+      cursor: pointer;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--muted);
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    details > summary::before { content: '▶'; font-size: 8px; }
+    details[open] > summary::before { content: '▼'; }
+    details > summary::-webkit-details-marker { display: none; }
+
   </style>
 </head>
 <body>
@@ -484,6 +558,21 @@
     </div>
   </div>
 
+
+  <!-- Worker Config -->
+  <details id="worker-details">
+    <summary>⚙ CLOUDFLARE WORKER (requis pour données fiables)</summary>
+    <div class="worker-panel" id="worker-panel" style="margin-top:10px;">
+      <div class="section-label">URL de ton Worker</div>
+      <div class="worker-input-row">
+        <input class="worker-input" id="worker-input" type="url"
+               placeholder="https://forex-proxy.tonpseudo.workers.dev" />
+        <button class="worker-save-btn" id="worker-save-btn">Sauver</button>
+      </div>
+      <div class="worker-status" id="worker-status"></div>
+    </div>
+  </details>
+
   <!-- Fetch Button -->
   <button id="btn-fetch">⚡ Fetch Annonces</button>
 
@@ -503,17 +592,32 @@
 <script>
   // ── DEVISES ──────────────────────────────────────────
   const ALL_CURRENCIES = ['USD','EUR','GBP','JPY','AUD','NZD','CAD','CHF','CNY'];
-  const FF_BASE = 'https://nfs.faireconomy.media/';
 
-  // Vendredi (5), Samedi (6), Dimanche (0) → on charge la semaine suivante
-  function getCalendarURL() {
-    const day = new Date().getDay(); // 0=dim, 5=ven, 6=sam
-    return FF_BASE + ([0, 5, 6].includes(day) ? 'ff_calendar_nextweek.json' : 'ff_calendar_thisweek.json');
+  // ── WORKER URL (sauvegardé automatiquement) ──────────
+  let WORKER_URL = localStorage.getItem('worker_url') || '';
+
+  function getCalendarFile() {
+    const day = new Date().getDay();
+    return [0, 5, 6].includes(day) ? 'ff_calendar_nextweek.json' : 'ff_calendar_thisweek.json';
   }
 
   function getCalendarLabel() {
     const day = new Date().getDay();
     return [0, 5, 6].includes(day) ? 'semaine prochaine (lundi→)' : 'semaine en cours';
+  }
+
+  function buildFetchURLs() {
+    const file = getCalendarFile();
+    const direct = `https://nfs.faireconomy.media/${file}`;
+    const urls = [];
+    if (WORKER_URL) urls.push(`${WORKER_URL.replace(/\/$/, '')}?file=${file}`);
+    urls.push(
+      `https://corsproxy.io/?${encodeURIComponent(direct)}`,
+      `https://api.allorigins.win/raw?url=${encodeURIComponent(direct)}`,
+      `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(direct)}`,
+      direct
+    );
+    return urls;
   }
 
   // Saved state
@@ -560,6 +664,39 @@
     });
   });
 
+
+  // ── WORKER CONFIG UI ─────────────────────────────────
+  const workerInput  = document.getElementById('worker-input');
+  const workerStatus = document.getElementById('worker-status');
+  const workerPanel  = document.getElementById('worker-panel');
+  const workerDetails= document.getElementById('worker-details');
+
+  if (WORKER_URL) {
+    workerInput.value = WORKER_URL;
+    workerStatus.textContent = '✔ Worker configuré';
+    workerStatus.className = 'worker-status ok';
+    workerPanel.classList.add('configured');
+  } else {
+    workerDetails.setAttribute('open', '');
+    workerStatus.textContent = '⚠ Pas de Worker → proxies publics utilisés (moins fiables)';
+    workerStatus.className = 'worker-status err';
+  }
+
+  document.getElementById('worker-save-btn').addEventListener('click', () => {
+    const val = workerInput.value.trim();
+    if (!val.startsWith('http')) {
+      workerStatus.textContent = '❌ URL invalide';
+      workerStatus.className = 'worker-status err';
+      return;
+    }
+    WORKER_URL = val;
+    localStorage.setItem('worker_url', val);
+    workerStatus.textContent = '✔ Worker sauvegardé !';
+    workerStatus.className = 'worker-status ok';
+    workerPanel.classList.add('configured');
+    workerDetails.removeAttribute('open');
+  });
+
   // ── HELPERS ──────────────────────────────────────────
   function setStatus(msg, type = '') {
     const el = document.getElementById('status');
@@ -594,37 +731,33 @@
     const btn = document.getElementById('btn-fetch');
     btn.classList.add('loading');
     btn.textContent = '⏳ Chargement…';
-    const FF_URL = getCalendarURL();
-    setStatus(`Connexion à Forex Factory (${getCalendarLabel()})…`);
+    const urls = buildFetchURLs();
+    setStatus(`Connexion… (${getCalendarLabel()})`);
     document.getElementById('results').innerHTML = `<div class="loader"><span></span><span></span><span></span></div>`;
 
     let data = [];
-    const PROXIES = [
-      u => u,
-      u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
-      u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-      u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
-    ];
-
     let success = false;
-    for (let i = 0; i < PROXIES.length; i++) {
-      const tryUrl = PROXIES[i](FF_URL);
+    for (let i = 0; i < urls.length; i++) {
       try {
-        setStatus(`Tentative ${i + 1}/${PROXIES.length}…`);
-        const res = await fetch(tryUrl, { signal: AbortSignal.timeout(8000) });
+        setStatus(`Source ${i + 1}/${urls.length}…`);
+        const res = await fetch(urls[i], { signal: AbortSignal.timeout(9000) });
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const text = await res.text();
         data = JSON.parse(text);
         success = true;
         break;
       } catch (e) {
-        console.warn('Proxy échoué :', tryUrl, e.message);
+        console.warn('Échec source', i + 1, ':', urls[i], e.message);
       }
     }
 
     if (!success) {
-      setStatus('❌ Tous les proxies ont échoué. Réessayez dans quelques secondes.', 'error');
-      document.getElementById('results').innerHTML = '';
+      setStatus('❌ Impossible de récupérer les données. Configurez votre Worker Cloudflare ci-dessous.', 'error');
+      document.getElementById('results').innerHTML = `
+        <div class="empty-state">
+          <div class="icon">🔧</div>
+          <p>Toutes les sources ont échoué.<br>Configurez votre Worker Cloudflare<br>pour un accès fiable.</p>
+        </div>`;
       btn.classList.remove('loading');
       btn.textContent = '⚡ Fetch Annonces';
       return;
