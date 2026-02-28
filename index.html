@@ -738,32 +738,54 @@
     const btn = document.getElementById('btn-fetch');
     btn.classList.add('loading');
     btn.textContent = '⏳ Chargement…';
-    const urls = buildFetchURLs();
     setStatus(`Connexion… (${getCalendarLabel()})`);
     document.getElementById('results').innerHTML = `<div class="loader"><span></span><span></span><span></span></div>`;
 
-    let data = [];
-    let success = false;
-    for (let i = 0; i < urls.length; i++) {
-      try {
-        setStatus(`Source ${i + 1}/${urls.length}…`);
-        const res = await fetch(urls[i], { signal: AbortSignal.timeout(9000) });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const text = await res.text();
-        data = JSON.parse(text);
-        success = true;
-        break;
-      } catch (e) {
-        console.warn('Échec source', i + 1, ':', urls[i], e.message);
-      }
+    // Essaie les fichiers dans l'ordre : nextweek si weekend, sinon thisweek
+    // Si nextweek échoue (pas encore publié), retombe sur thisweek
+    const filesToTry = [];
+    const day = new Date().getDay();
+    if ([0, 5, 6].includes(day)) {
+      filesToTry.push('ff_calendar_nextweek.json', 'ff_calendar_thisweek.json');
+    } else {
+      filesToTry.push('ff_calendar_thisweek.json');
     }
 
-    if (!success) {
-      setStatus('❌ Impossible de récupérer les données. Configurez votre Worker Cloudflare ci-dessous.', 'error');
+    async function tryFetch(file) {
+      const direct = `https://nfs.faireconomy.media/${file}`;
+      const sources = [];
+      if (WORKER_URL) sources.push(`${WORKER_URL.replace(/\/$/, '')}?file=${file}`);
+      sources.push(
+        `https://corsproxy.io/?${encodeURIComponent(direct)}`,
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(direct)}`,
+        direct
+      );
+      for (const url of sources) {
+        try {
+          const res = await fetch(url, { signal: AbortSignal.timeout(9000) });
+          if (!res.ok) continue;
+          const text = await res.text();
+          if (!text.trim().startsWith('[')) continue; // pas du JSON valide
+          return JSON.parse(text);
+        } catch(e) { /* essaie suivant */ }
+      }
+      return null;
+    }
+
+    let data = null;
+    let usedFile = '';
+    for (const file of filesToTry) {
+      setStatus(`Tentative avec ${file}…`);
+      data = await tryFetch(file);
+      if (data) { usedFile = file; break; }
+    }
+
+    if (!data) {
+      setStatus('❌ Impossible de récupérer les données. Vérifiez votre Worker Cloudflare.', 'error');
       document.getElementById('results').innerHTML = `
         <div class="empty-state">
           <div class="icon">🔧</div>
-          <p>Toutes les sources ont échoué.<br>Configurez votre Worker Cloudflare<br>pour un accès fiable.</p>
+          <p>Toutes les sources ont échoué.<br>Vérifiez votre Worker Cloudflare.</p>
         </div>`;
       btn.classList.remove('loading');
       btn.textContent = '⚡ Fetch Annonces';
@@ -779,7 +801,7 @@
     renderResults(filtered);
     btn.classList.remove('loading');
     btn.textContent = '⚡ Fetch Annonces';
-    setStatus(`✔ ${getCalendarLabel()} · mis à jour à ${new Date().toLocaleTimeString('fr-FR')}`, 'ok');
+    const label = usedFile.includes('next') ? 'semaine prochaine' : 'semaine en cours'; setStatus(`✔ ${label} · mis à jour à ${new Date().toLocaleTimeString('fr-FR')}`, 'ok');
   }
 
   // ── RENDER ───────────────────────────────────────────
