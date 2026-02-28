@@ -607,16 +607,23 @@
   }
 
   function buildFetchURLs() {
-    const file = getCalendarFile();
-    const direct = `https://nfs.faireconomy.media/${file}`;
+    const files = [];
+    const day = new Date().getDay();
+    // Vendredi/Samedi/Dimanche : essaie nextweek d'abord, puis thisweek en fallback
+    if ([0, 5, 6].includes(day)) {
+      files.push('ff_calendar_nextweek.json', 'ff_calendar_thisweek.json');
+    } else {
+      files.push('ff_calendar_thisweek.json');
+    }
     const urls = [];
-    if (WORKER_URL) urls.push(`${WORKER_URL.replace(/\/$/, '')}?file=${file}`);
-    urls.push(
-      `https://corsproxy.io/?${encodeURIComponent(direct)}`,
-      `https://api.allorigins.win/raw?url=${encodeURIComponent(direct)}`,
-      `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(direct)}`,
-      direct
-    );
+    for (const file of files) {
+      const direct = `https://nfs.faireconomy.media/${file}`;
+      if (WORKER_URL) urls.push(`${WORKER_URL.replace(/\/$/, '')}?file=${file}`);
+      urls.push(
+        `https://corsproxy.io/?${encodeURIComponent(direct)}`,
+        direct
+      );
+    }
     return urls;
   }
 
