@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>📊 Annonces Forex</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #090c10;
+      --surface:   #0d1117;
+      --panel:     #111820;
+      --border:    #1e2d3d;
+      --accent:    #00d4ff;
+      --accent2:   #00ff9d;
+      --high:      #ff4d4d;
+      --med:       #ffd700;
+      --low:       #3ddc84;
+      --holiday:   #666e7a;
+      --text:      #c9d1d9;
+      --muted:     #4a5568;
+      --mono:      'Share Tech Mono', monospace;
+      --sans:      'Barlow Condensed', sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 15px;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── SCANLINE OVERLAY ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,212,255,0.015) 2px,
+        rgba(0,212,255,0.015) 4px
+      );
+      pointer-events: none;
+      z-index: 999;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 20px 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    header::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    }
+
+    .header-icon {
+      font-size: 22px;
+      filter: drop-shadow(0 0 8px var(--accent));
+    }
+
+    .header-title {
+      flex: 1;
+    }
+
+    .header-title h1 {
+      font-family: var(--sans);
+      font-weight: 700;
+      font-size: 18px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #fff;
+    }
+
+    .header-title p {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 1px;
+      margin-top: 2px;
+    }
+
+    .live-dot {
+      width: 8px; height: 8px;
+      background: var(--accent2);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--accent2);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.4; transform: scale(0.8); }
+    }
+
+    /* ── MAIN CONTENT ── */
+    main {
+      padding: 20px 16px;
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    /* ── SECTION LABELS ── */
+    .section-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 3px;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── CURRENCY GRID ── */
+    .currency-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .currency-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .currency-toggle {
+      display: none;
+    }
+
+    .currency-toggle + label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 40px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all .18s ease;
+      user-select: none;
+    }
+
+    .currency-toggle:checked + label {
+      background: rgba(0,212,255,0.12);
+      border-color: var(--accent);
+      color: var(--accent);
+      box-shadow: 0 0 10px rgba(0,212,255,0.2);
+    }
+
+    .currency-toggle + label:active {
+      transform: scale(0.94);
+    }
+
+    /* ── IMPACT FILTER ── */
+    .impact-grid {
+      display: flex;
+      gap: 8px;
+    }
+
+    .impact-btn {
+      flex: 1;
+      height: 34px;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 11px;
+      cursor: pointer;
+      transition: all .18s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+    }
+
+    .impact-btn.active-high  { background: rgba(255,77,77,.15);  border-color: var(--high);  color: var(--high);  }
+    .impact-btn.active-med   { background: rgba(255,215,0,.12);  border-color: var(--med);   color: var(--med);   }
+    .impact-btn.active-low   { background: rgba(61,220,132,.12); border-color: var(--low);   color: var(--low);   }
+
+    /* ── FETCH BUTTON ── */
+    #btn-fetch {
+      width: 100%;
+      height: 52px;
+      background: linear-gradient(135deg, #003d55 0%, #005f80 100%);
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      color: var(--accent);
+      font-family: var(--sans);
+      font-weight: 700;
+      font-size: 16px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      cursor: pointer;
+      margin-bottom: 20px;
+      position: relative;
+      overflow: hidden;
+      transition: all .2s ease;
+      box-shadow: 0 0 20px rgba(0,212,255,0.1);
+    }
+
+    #btn-fetch:hover {
+      box-shadow: 0 0 30px rgba(0,212,255,0.25);
+      background: linear-gradient(135deg, #004d6a 0%, #007099 100%);
+    }
+
+    #btn-fetch:active { transform: scale(0.98); }
+
+    #btn-fetch::before {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%;
+      width: 100%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(0,212,255,0.12), transparent);
+      transition: left .4s ease;
+    }
+
+    #btn-fetch:hover::before { left: 100%; }
+
+    #btn-fetch.loading {
+      pointer-events: none;
+      opacity: 0.7;
+    }
+
+    /* ── STATUS BAR ── */
+    #status {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      text-align: center;
+      margin-bottom: 16px;
+      min-height: 16px;
+      letter-spacing: 1px;
+    }
+
+    #status.error { color: var(--high); }
+    #status.ok    { color: var(--accent2); }
+
+    /* ── RESULTS ── */
+    #results { display: flex; flex-direction: column; gap: 10px; }
+
+    /* ── STAT BAR ── */
+    .stat-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .stat-chip {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 4px 10px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .stat-chip span { color: var(--text); font-weight: 600; }
+
+    /* ── EVENT CARD ── */
+    .event-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      animation: slideIn .25s ease forwards;
+      opacity: 0;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .event-card:nth-child(n)  { animation-delay: calc(var(--i, 0) * 50ms); }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .impact-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .impact-dot.High    { background: var(--high);    box-shadow: 0 0 6px var(--high); }
+    .impact-dot.Medium  { background: var(--med);     box-shadow: 0 0 6px var(--med); }
+    .impact-dot.Low     { background: var(--low);     box-shadow: 0 0 6px var(--low); }
+    .impact-dot.Holiday { background: var(--holiday); }
+
+    .card-currency {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent);
+      min-width: 32px;
+    }
+
+    .card-date {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      margin-left: auto;
+      white-space: nowrap;
+    }
+
+    .card-body { padding: 10px 14px; }
+
+    .card-title {
+      font-family: var(--sans);
+      font-size: 15px;
+      font-weight: 600;
+      color: #fff;
+      line-height: 1.3;
+      margin-bottom: 8px;
+    }
+
+    .card-meta {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .meta-label {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .meta-value {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .meta-value.impact-High    { color: var(--high); }
+    .meta-value.impact-Medium  { color: var(--med); }
+    .meta-value.impact-Low     { color: var(--low); }
+    .meta-value.impact-Holiday { color: var(--holiday); }
+
+    /* ── EMPTY STATE ── */
+    .empty-state {
+      text-align: center;
+      padding: 50px 20px;
+      color: var(--muted);
+    }
+
+    .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-state p { font-family: var(--mono); font-size: 12px; letter-spacing: 1px; }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding: 30px 20px 20px;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 1px;
+    }
+
+    footer a { color: var(--accent); text-decoration: none; }
+
+    /* ── LOADER ── */
+    .loader {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+      padding: 40px;
+    }
+
+    .loader span {
+      width: 8px; height: 8px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: bounce 1s infinite ease;
+    }
+
+    .loader span:nth-child(2) { animation-delay: .15s; }
+    .loader span:nth-child(3) { animation-delay: .30s; }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); opacity: 0.4; }
+      50%       { transform: translateY(-10px); opacity: 1; }
+    }
+
+    /* ── DAY SEPARATOR ── */
+    .day-sep {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 3px;
+      color: var(--accent);
+      text-transform: uppercase;
+      padding: 10px 0 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .day-sep::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+  </style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header>
+  <span class="header-icon">📊</span>
+  <div class="header-title">
+    <h1>Annonces Forex</h1>
+    <p>Source · Forex Factory Calendar</p>
+  </div>
+  <div class="live-dot"></div>
+</header>
+
+<!-- ── MAIN ── -->
+<main>
+
+  <!-- Currency Selector -->
+  <div class="currency-panel">
+    <div class="section-label">Devises</div>
+    <div class="currency-grid" id="currency-grid">
+      <!-- Generated by JS -->
+    </div>
+
+    <div class="section-label" style="margin-top:14px;">Impact</div>
+    <div class="impact-grid">
+      <button class="impact-btn active-high" data-impact="High"   id="f-high">🔴 High</button>
+      <button class="impact-btn active-med"  data-impact="Medium" id="f-med">🟡 Med</button>
+      <button class="impact-btn active-low"  data-impact="Low"    id="f-low">🟢 Low</button>
+    </div>
+  </div>
+
+  <!-- Fetch Button -->
+  <button id="btn-fetch">⚡ Fetch Annonces</button>
+
+  <!-- Status -->
+  <div id="status"></div>
+
+  <!-- Results -->
+  <div id="results"></div>
+
+</main>
+
+<footer>
+  Données · <a href="https://www.forexfactory.com" target="_blank">Forex Factory</a> &nbsp;·&nbsp;
+  Aucune clé API · 100% gratuit
+</footer>
+
+<script>
+  // ── DEVISES ──────────────────────────────────────────
+  const ALL_CURRENCIES = ['USD','EUR','GBP','JPY','AUD','NZD','CAD','CHF','CNY'];
+  const PROXY = 'https://api.allorigins.win/raw?url=';
+  const FF_BASE = 'https://nfs.faireconomy.media/';
+
+  // Vendredi (5), Samedi (6), Dimanche (0) → on charge la semaine suivante
+  function getCalendarURL() {
+    const day = new Date().getDay(); // 0=dim, 5=ven, 6=sam
+    return FF_BASE + ([0, 5, 6].includes(day) ? 'ff_calendar_nextweek.json' : 'ff_calendar_thisweek.json');
+  }
+
+  function getCalendarLabel() {
+    const day = new Date().getDay();
+    return [0, 5, 6].includes(day) ? 'semaine prochaine (lundi→)' : 'semaine en cours';
+  }
+
+  // Saved state
+  let selectedCurrencies = new Set(JSON.parse(localStorage.getItem('sel_curr') || '["USD","EUR"]'));
+  let activeImpacts = new Set(JSON.parse(localStorage.getItem('sel_impact') || '["High","Medium","Low"]'));
+
+  // ── BUILD CURRENCY GRID ──────────────────────────────
+  const grid = document.getElementById('currency-grid');
+  ALL_CURRENCIES.forEach(c => {
+    const id = 'chk-' + c;
+    const inp = document.createElement('input');
+    inp.type = 'checkbox';
+    inp.className = 'currency-toggle';
+    inp.id = id;
+    inp.value = c;
+    inp.checked = selectedCurrencies.has(c);
+
+    const lbl = document.createElement('label');
+    lbl.htmlFor = id;
+    lbl.textContent = c;
+
+    inp.addEventListener('change', () => {
+      inp.checked ? selectedCurrencies.add(c) : selectedCurrencies.delete(c);
+      localStorage.setItem('sel_curr', JSON.stringify([...selectedCurrencies]));
+    });
+
+    grid.appendChild(inp);
+    grid.appendChild(lbl);
+  });
+
+  // ── IMPACT FILTERS ───────────────────────────────────
+  document.querySelectorAll('.impact-btn').forEach(btn => {
+    const imp = btn.dataset.impact;
+    if (!activeImpacts.has(imp)) btn.className = 'impact-btn';
+    btn.addEventListener('click', () => {
+      if (activeImpacts.has(imp)) {
+        activeImpacts.delete(imp);
+        btn.className = 'impact-btn';
+      } else {
+        activeImpacts.add(imp);
+        btn.className = 'impact-btn active-' + imp.toLowerCase().substring(0,3);
+      }
+      localStorage.setItem('sel_impact', JSON.stringify([...activeImpacts]));
+    });
+  });
+
+  // ── HELPERS ──────────────────────────────────────────
+  function setStatus(msg, type = '') {
+    const el = document.getElementById('status');
+    el.textContent = msg;
+    el.className = type;
+  }
+
+  function formatDate(iso) {
+    try {
+      const d = new Date(iso);
+      const day  = d.toLocaleDateString('fr-FR', { weekday:'short', day:'2-digit', month:'short' });
+      const time = d.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+      return { day, time, ts: d.getTime(), weekday: d.toLocaleDateString('fr-FR', { weekday:'long', day:'2-digit', month:'long' }) };
+    } catch {
+      return { day:'--', time:'--', ts:0, weekday:'--' };
+    }
+  }
+
+  function impactEmoji(impact) {
+    return { High:'🔴', Medium:'🟡', Low:'🟢', Holiday:'📅' }[impact] || '⚪';
+  }
+
+  // ── FETCH ────────────────────────────────────────────
+  document.getElementById('btn-fetch').addEventListener('click', fetchAnnonces);
+
+  async function fetchAnnonces() {
+    if (selectedCurrencies.size === 0) {
+      setStatus('⚠ Sélectionnez au moins une devise.', 'error');
+      return;
+    }
+
+    const btn = document.getElementById('btn-fetch');
+    btn.classList.add('loading');
+    btn.textContent = '⏳ Chargement…';
+    const FF_URL = getCalendarURL();
+    setStatus(`Connexion à Forex Factory (${getCalendarLabel()})…`);
+    document.getElementById('results').innerHTML = `<div class="loader"><span></span><span></span><span></span></div>`;
+
+    let data = [];
+    const urls = [FF_URL, PROXY + encodeURIComponent(FF_URL)];
+
+    for (const url of urls) {
+      try {
+        const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        data = await res.json();
+        break;
+      } catch (e) {
+        if (url === urls[urls.length - 1]) {
+          setStatus('❌ Erreur de connexion. Vérifiez votre réseau.', 'error');
+          document.getElementById('results').innerHTML = '';
+          btn.classList.remove('loading');
+          btn.textContent = '⚡ Fetch Annonces';
+          return;
+        }
+      }
+    }
+
+    // Filter
+    const filtered = data.filter(e =>
+      selectedCurrencies.has((e.currency || '').toUpperCase()) &&
+      activeImpacts.has(e.impact)
+    ).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    renderResults(filtered);
+    btn.classList.remove('loading');
+    btn.textContent = '⚡ Fetch Annonces';
+    setStatus(`✔ ${getCalendarLabel()} · mis à jour à ${new Date().toLocaleTimeString('fr-FR')}`, 'ok');
+  }
+
+  // ── RENDER ───────────────────────────────────────────
+  function renderResults(events) {
+    const container = document.getElementById('results');
+    container.innerHTML = '';
+
+    if (events.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="icon">📭</div>
+          <p>Aucune annonce trouvée<br>pour la sélection actuelle.</p>
+        </div>`;
+      return;
+    }
+
+    // Stats
+    const high = events.filter(e => e.impact === 'High').length;
+    const med  = events.filter(e => e.impact === 'Medium').length;
+    const bar  = document.createElement('div');
+    bar.className = 'stat-bar';
+    bar.innerHTML = `
+      <div class="stat-chip">Total <span>${events.length}</span></div>
+      <div class="stat-chip">🔴 <span>${high}</span></div>
+      <div class="stat-chip">🟡 <span>${med}</span></div>`;
+    container.appendChild(bar);
+
+    // Group by day
+    const byDay = {};
+    events.forEach(e => {
+      const { weekday, ts } = formatDate(e.date);
+      if (!byDay[weekday]) byDay[weekday] = { ts, events: [] };
+      byDay[weekday].events.push(e);
+    });
+
+    const sortedDays = Object.entries(byDay).sort((a,b) => a[1].ts - b[1].ts);
+
+    sortedDays.forEach(([dayLabel, { events: dayEvents }]) => {
+      const sep = document.createElement('div');
+      sep.className = 'day-sep';
+      sep.textContent = dayLabel;
+      container.appendChild(sep);
+
+      dayEvents.forEach((e, i) => {
+        const { time } = formatDate(e.date);
+        const card = document.createElement('div');
+        card.className = 'event-card';
+        card.style.setProperty('--i', i);
+
+        const forecast = e.forecast || '<span style="color:var(--muted)">—</span>';
+        const previous = e.previous || '<span style="color:var(--muted)">—</span>';
+
+        card.innerHTML = `
+          <div class="card-header">
+            <div class="impact-dot ${e.impact || ''}"></div>
+            <span class="card-currency">${(e.currency || '').toUpperCase()}</span>
+            <span class="card-date">🕐 ${time}</span>
+          </div>
+          <div class="card-body">
+            <div class="card-title">${e.title || 'N/A'}</div>
+            <div class="card-meta">
+              <div class="meta-item">
+                <span class="meta-label">Impact</span>
+                <span class="meta-value impact-${e.impact}">${impactEmoji(e.impact)} ${e.impact || '—'}</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">Prévision</span>
+                <span class="meta-value">${forecast}</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">Précédent</span>
+                <span class="meta-value">${previous}</span>
+              </div>
+            </div>
+          </div>`;
+        container.appendChild(card);
+      });
+    });
+  }
+</script>
+</body>
+</html>
